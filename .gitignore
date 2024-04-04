@@ -1,3 +1,5 @@
+/input/
+/output/
 *.pyc
 __pycache__/
 .idea/
