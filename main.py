@@ -4,6 +4,7 @@ import json
 
 INPUT_FOLDER = 'input'
 OUTPUT_FOLDER = 'output'
+DIVERSITY_FILE = "diversity.csv"
 
 TAXON_RANKS = ['Phylum', 'Class', 'Order', 'Family', 'Genus']
 
@@ -56,7 +57,50 @@ def read_data(file_name, delimiter=','):
 	return data
 
 
-def process_data(data):
+def format_diversity_data(diversity_data):
+	formatted_diversity_data = {}
+
+	for row in diversity_data:
+		aphia_id = row['WoRMS AphiaID']
+		common_name = row['Common Name']
+		scientific_name = row['Scientific Name']
+		kingdom = row['Kindom']
+		phylum = row['Phylum']
+		class_name = row['Class']
+		order = row['Order']
+		family = row['Family']
+		genus = row['Genus']
+		species = row['Species']
+		max_depth = row['Max Depth']
+		min_depth = row['Min Depth']
+
+		image = row['Link to Pic 1']
+		if image == 'NA' or (not image.endswith('.png') and not image.endswith('.jpg')):
+			image = row['Link to Pic 2']
+		if image == 'NA' or (not image.endswith('.png') and not image.endswith('.jpg')):
+			image = None
+
+		print(max_depth, min_depth)
+
+		formatted_diversity_data[aphia_id] = {
+			'Common Name': common_name,
+			'CombinedNameID': scientific_name,
+			'Kingdom': kingdom,
+			'Phylum': phylum,
+			'Class': class_name,
+			'Order': order,
+			'Family': family,
+			'Genus': genus,
+			'Species': species,
+			'Max Depth': max_depth,
+			'Min Depth': min_depth,
+			'Image': image
+		}
+
+	return formatted_diversity_data
+
+
+def process_data(data, diversity_data={}):
 	# get the rows of all unique organisms (basing uniqueness on the CombinedNameID)
 	unique_organisms = []
 	combined_name_set = set()
@@ -73,6 +117,13 @@ def process_data(data):
 		if row['AphiaID'] == 'NA' or row['AphiaID'] == '-999':
 			continue
 
+		if row['AphiaID'] in diversity_data:
+			row['VernacularName'] = diversity_data[row['AphiaID']]['Common Name']
+			row['CombinedNameID'] = diversity_data[row['AphiaID']]['CombinedNameID']
+			row['Image'] = diversity_data[row['AphiaID']]['Image']
+			row['Max Depth'] = diversity_data[row['AphiaID']]['Max Depth']
+			row['Min Depth'] = diversity_data[row['AphiaID']]['Min Depth']
+
 		taxon_data = ['Animalia']
 
 		for rank in TAXON_RANKS:
@@ -81,13 +132,29 @@ def process_data(data):
 			else:
 				break
 
+		if not 'Image' in row:
+			row['Image'] = ""
+
+		if not 'Max Depth' in row or row['Max Depth'] == 'NA' or row['Max Depth'] == '':
+			row['Max Depth'] = 0
+		else:
+			row['Max Depth'] = float(row['Max Depth'])
+		
+		if not 'Min Depth' in row or row['Min Depth'] == 'NA' or row['Min Depth'] == '':
+			row['Min Depth'] = 0
+		else:
+			row['Min Depth'] = float(row['Min Depth'])
+
 		organism_data = {
 			'Name': row['AphiaID'],
 			'Common Name': row['VernacularName'].title(),
 			'Scientific Name': row['CombinedNameID'],
 			'Taxonomy': {
 				'Taxonomy Chain': taxon_data
-			}
+			},
+			'Image': row['Image'],
+			'Max Depth': row['Max Depth'],
+			'Min Depth': row['Min Depth']
 		}
 
 		organisms.append(organism_data)
@@ -130,6 +197,12 @@ def write_json_data(file_name, data):
 		f.write(json_data)
 
 def main():
+	diversity_data = []
+	if os.path.exists(DIVERSITY_FILE):
+		diversity_data = read_data(DIVERSITY_FILE)
+	
+	diversity_data = format_diversity_data(diversity_data)
+
 	if not os.path.exists(OUTPUT_FOLDER):
 		os.makedirs(OUTPUT_FOLDER)
 
@@ -146,7 +219,7 @@ def main():
 			continue
 
 		overall_data = read_data(os.path.join(INPUT_FOLDER, file_name), delimiter)
-		organisms, spotting = process_data(overall_data)
+		organisms, spotting = process_data(overall_data, diversity_data)
 
 		write_json_data(os.path.join(OUTPUT_FOLDER, name + "Organisms" + ".json"), organisms)
 		write_json_data(os.path.join(OUTPUT_FOLDER, name + "Spotting" + ".json"), spotting)
