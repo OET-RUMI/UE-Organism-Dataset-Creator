@@ -80,8 +80,6 @@ def format_diversity_data(diversity_data):
 		if image == 'NA' or (not image.endswith('.png') and not image.endswith('.jpg')):
 			image = None
 
-		print(max_depth, min_depth)
-
 		formatted_diversity_data[aphia_id] = {
 			'Common Name': common_name,
 			'CombinedNameID': scientific_name,
@@ -152,7 +150,7 @@ def process_data(data, diversity_data={}):
 			'Taxonomy': {
 				'Taxonomy Chain': taxon_data
 			},
-			'Image': row['Image'],
+			'Highlight Image': row['Image'],
 			'Max Depth': row['Max Depth'],
 			'Min Depth': row['Min Depth']
 		}
