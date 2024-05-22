@@ -93,13 +93,14 @@ def process_data(data):
 		organisms.append(organism_data)
 
 	# get the rows of all spotting events
+	i = 0
 	spotting = []
 	for row in data:
 		if row['AphiaID'] == 'NA' or row['AphiaID'] == '-999':
 			continue
 
 		spotting_data = {
-			'Name': row['SampleID'],
+			'Name': str(i),
 			'AphiaID': row['AphiaID'],
 			'Repository': row['Repository'],
 			'Identified By': row['IdentifiedBy'],
@@ -114,6 +115,8 @@ def process_data(data):
 			'Condition': row['Condition'],
 			'Observation Image': row['ImageFilePath']
 		}
+
+		i += 1
 
 		spotting.append(spotting_data)
 
